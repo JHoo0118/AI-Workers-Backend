@@ -1,0 +1,26 @@
+.cache/
+__pycache__/
+/src/app/__pycache__/
+/src/tests/__pycache__/
+.pytest_cache
+venv/ 
+# Editor directories and files
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# vercel
+.vercel
+
+# local env files
+.env*.local
+.env
+.env.prod
+.env.dev
+env/
+tmp_files/
+tmp_usage_files/
+
+requirements.txt-snapshot
