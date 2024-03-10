@@ -1,0 +1,9 @@
+env/
+tmp_files
+tmp_usage_files
+.env
+.env.dev
+.env.prod
+Makefile
+README.MD
+streaming_test.ipynb
