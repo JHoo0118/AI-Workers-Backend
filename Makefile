@@ -8,12 +8,12 @@ install:
 	pip install -r requirements.txt
 
 generate:
-	cd prisma generate
+	prisma generate
 
 reset:
-	cd prisma migrate reset
+	prisma migrate reset
 
 db_push:
-	cd prisma db push
+	prisma db push
 
 .PHONY: start freeze install generate reset db_push
