@@ -17,5 +17,5 @@ if __name__ == "__main__":
         host=host,
         port=port,
         reload=True,
-        timeout_keep_alive=60,
+        timeout_keep_alive=60 * 3,
     )
