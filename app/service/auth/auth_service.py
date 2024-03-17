@@ -153,7 +153,7 @@ class AuthService(object):
                     data={"sub": email},
                 )
 
-            await self.update_rt_hash(email=user.email, rt=refresh_token)
+            # await self.update_rt_hash(email=user.email, rt=refresh_token)
 
             return LogInOutputs(
                 access_token=access_token,

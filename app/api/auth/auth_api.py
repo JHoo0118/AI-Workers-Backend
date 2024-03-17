@@ -47,14 +47,15 @@ async def login(
 
 @router.get("/login/google")
 async def login_google() -> LoginGoogleOutputs:
-    # url: str = AuthService().login_google()
-    url: str = SupabaseAuthService().login_google()
+    url: str = AuthService().login_google()
+    # url: str = SupabaseAuthService().login_google()
     return LoginGoogleOutputs(url=url)
 
 
 @router.get("/callback/google")
 async def callback_google(response: RedirectResponse, code: str) -> Response:
-    login_outputs = await SupabaseAuthService().callback_google(code)
+    login_outputs = await AuthService().callback_google(code)
+    # login_outputs = await SupabaseAuthService().callback_google(code)
 
     redirect_url = os.getenv("GOOGLE_REDIRECT_SUCCESS_URI")
     response = RedirectResponse(

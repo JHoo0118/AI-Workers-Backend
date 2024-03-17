@@ -17,19 +17,7 @@ class AICodeCodeConvertService(object):
 
         return class_._instance
 
-    def __init__(self):
-        if not os.path.exists("./backend/.cache"):
-            os.makedirs("./backend/.cache")
-
-        if not os.path.exists("./backend/.cache/code_convert"):
-            os.makedirs("./backend/.cache/code_convert")
-
-    def __init_path(self, email: str):
-        if not os.path.exists(f"./backend/.cache/code_convert/{email}"):
-            os.makedirs(f"./backend/.cache/code_convert/{email}")
-
     async def invoke_chain(self, email: str, inputs: CodeConvertGenerateInputs):
-        self.__init_path(email=email)
 
         prompt = PromptTemplate(
             template="""Given the original code in a specific programming language and the target programming language, your task is to convert the code from the original language to the target language. This process requires understanding the syntax, data types, control structures, and libraries or frameworks used in both the original and target languages. 

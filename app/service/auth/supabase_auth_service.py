@@ -219,9 +219,16 @@ class SupabaseAuthService(object):
             )
 
     async def refresh_tokens(self, email: str, rt: str) -> RefreshTokensOutputs:
-        res = self._supabaseService.supabase.auth.refresh_session(rt)
 
-        return RefreshTokensOutputs(
-            access_token=res.session.access_token,
-            refresh_token=res.session.refresh_token,
-        )
+        try:
+            res = self._supabaseService.supabase.auth.refresh_session(refresh_token=rt)
+            return RefreshTokensOutputs(
+                access_token=res.session.access_token,
+                refresh_token=res.session.refresh_token,
+            )
+        except Exception as e:
+            res = self._supabaseService.supabase.auth.get_session()
+            return RefreshTokensOutputs(
+                access_token=res.access_token,
+                refresh_token=res.refresh_token,
+            )

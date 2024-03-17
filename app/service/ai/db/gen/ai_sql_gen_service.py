@@ -33,15 +33,6 @@ class AISqlGenService(object):
             memory_key="chat_history",
             return_messages=True,
         )
-        if not os.path.exists("./backend/.cache"):
-            os.makedirs("./backend/.cache")
-
-        if not os.path.exists("./backend/.cache/sql_gen"):
-            os.makedirs("./backend/.cache/sql_gen")
-
-    def __init_path(self, email: str):
-        if not os.path.exists(f"./backend/.cache/sql_gen/{email}"):
-            os.makedirs(f"./backend/.cache/sql_gen/{email}")
 
     def save_message(self, input, output):
         self._memory.save_context(inputs={"input": input}, outputs={"output": output})
@@ -60,8 +51,6 @@ class AISqlGenService(object):
         Returns:
             state (dict): Updates request key with summarized request
         """
-
-        self.__init_path(email=email)
 
         prompt = ChatPromptTemplate.from_messages(
             [

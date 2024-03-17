@@ -39,17 +39,6 @@ class AIDiagramErdService(object):
 
         return class_._instance
 
-    def __init__(self):
-        if not os.path.exists("./backend/.cache"):
-            os.makedirs("./backend/.cache")
-
-        if not os.path.exists("./backend/.cache/erd"):
-            os.makedirs("./backend/.cache/erd")
-
-    def __init_path(self, email: str):
-        if not os.path.exists(f"./backend/.cache/erd/{email}"):
-            os.makedirs(f"./backend/.cache/erd/{email}")
-
     ### Nodes ###
     def improve_query(self, state):
         """
@@ -343,7 +332,6 @@ class AIDiagramErdService(object):
             return "yes"
 
     async def invoke(self, email: str, inputs: ErdGenerateInputs):
-        self.__init_path(email=email)
         pInputs = {"keys": inputs.model_dump()}
         workflow = StateGraph(self.GraphState)
 
@@ -386,6 +374,6 @@ class AIDiagramErdService(object):
         except:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="ERD 이미지 생성에 실패했습니다.",
+                detail="ERD 이미지 생성에 실패했습니다. 프롬프트를 변경해 보세요.",
                 headers={"WWW-Authenticate": "Bearer"},
             )

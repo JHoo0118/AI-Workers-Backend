@@ -32,17 +32,6 @@ class AIDiagramSeqDiagramService(object):
 
         return class_._instance
 
-    def __init__(self):
-        if not os.path.exists("./backend/.cache"):
-            os.makedirs("./backend/.cache")
-
-        if not os.path.exists("./backend/.cache/seq_diagram"):
-            os.makedirs("./backend/.cache/seq_diagram")
-
-    def __init_path(self, email: str):
-        if not os.path.exists(f"./backend/.cache/seq_diagram/{email}"):
-            os.makedirs(f"./backend/.cache/seq_diagram/{email}")
-
     ### Nodes ###
     def summarize_user_request(self, state):
         """
@@ -103,7 +92,6 @@ class AIDiagramSeqDiagramService(object):
         - Detail the sequence of messages exchanged between participants, using arrows to denote direction and message type (solid for direct messages, dotted for responses, etc.).
         - Use 'Notes' for parameters or additional explanations.
         - Do not use that Participant name is "AS".
-        - Background color is white, foreground color is black.
         - activation/deactivation (+/-) should be equal to single activate/deactivate instruction.
         - Incorporate advanced diagramming features such as activation bars to indicate when a participant is active, loops for repetitive actions, and conditional blocks to represent decision-making processes.
         - Include comments to explain complex parts of the diagram or to provide additional context.
@@ -163,7 +151,6 @@ class AIDiagramSeqDiagramService(object):
         }
 
     async def invoke(self, email: str, inputs: SeqDiagramGenerateInputs):
-        self.__init_path(email=email)
         pInputs = {"keys": inputs.model_dump()}
 
         workflow = StateGraph(self.GraphState)
@@ -192,6 +179,6 @@ class AIDiagramSeqDiagramService(object):
         except:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Sequence Diagram 이미지 생성에 실패했습니다.",
+                detail="Sequence Diagram 이미지 생성에 실패했습니다. 프롬프트를 변경해 보세요.",
                 headers={"WWW-Authenticate": "Bearer"},
             )

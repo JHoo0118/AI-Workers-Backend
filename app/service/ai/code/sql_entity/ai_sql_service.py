@@ -4,6 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 
 from app.model.ai.code.sql_entity.ai_sql_entity_model import SqlToEntityGenerateInputs
+from app.utils.data_utils import replace_ignore_case
 
 
 class AICodeSqlService(object):
@@ -15,19 +16,7 @@ class AICodeSqlService(object):
 
         return class_._instance
 
-    def __init__(self):
-        if not os.path.exists("./backend/.cache"):
-            os.makedirs("./backend/.cache")
-
-        if not os.path.exists("./backend/.cache/sql"):
-            os.makedirs("./backend/.cache/sql")
-
-    def __init_path(self, email: str):
-        if not os.path.exists(f"./backend/.cache/sql/{email}"):
-            os.makedirs(f"./backend/.cache/sql/{email}")
-
     async def invoke_chain(self, email: str, inputs: SqlToEntityGenerateInputs):
-        self.__init_path(email=email)
 
         prompt = PromptTemplate(
             template="""The AI model is tasked with generating entity code for a specific framework based on the SQL code provided by the user. This task involves parsing the SQL code to extract schema information, such as table names, column details (names, data types, constraints), and relationships between tables. The model will then use this information to create entity classes or models in the framework specified by the user, aligning with the framework's conventions for object-relational mapping (ORM).
@@ -71,4 +60,9 @@ class AICodeSqlService(object):
 
         # Run
         result = await chain.ainvoke(inputs.model_dump())
+
+        langs = ["go", "java", "python", "javascript", "typescript", "csharp"]
+        for lang in langs:
+            result = replace_ignore_case(result, f"```{lang}", "")
+        result = result.replace("```", "")
         return result

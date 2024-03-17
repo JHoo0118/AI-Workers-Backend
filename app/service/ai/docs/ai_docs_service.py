@@ -81,10 +81,6 @@ class AIDocsService(object):
         self._supabaseService = SupabaseService()
         self._fileService = FileService()
 
-        # 불러오기
-        # 유저별 구분
-        # agent도 작성
-        # 2시간마다 삭제
         history = UpstashRedisChatMessageHistory(
             url=UPSTASH_REDIS_REST_URL,
             token=UPSTASH_REDIS_REST_TOKEN,

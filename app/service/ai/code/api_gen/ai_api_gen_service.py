@@ -10,6 +10,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from app.model.ai.code.api_gen.ai_api_gen_model import ApiGenerateInputs
+from app.utils.data_utils import replace_ignore_case
 
 
 class AICodeApiGenService(object):
@@ -30,17 +31,6 @@ class AICodeApiGenService(object):
             class_._instance = object.__new__(class_, *args, **kwargs)
 
         return class_._instance
-
-    def __init__(self):
-        if not os.path.exists("./backend/.cache"):
-            os.makedirs("./backend/.cache")
-
-        if not os.path.exists("./backend/.cache/api_gen"):
-            os.makedirs("./backend/.cache/api_gen")
-
-    def __init_path(self, email: str):
-        if not os.path.exists(f"./backend/.cache/api_gen/{email}"):
-            os.makedirs(f"./backend/.cache/api_gen/{email}")
 
     ### Nodes ###
     def summarize_user_request(self, state):
@@ -213,6 +203,11 @@ class AICodeApiGenService(object):
         backend_code = rag_chain.invoke(
             {"input": input, "framework": framework, "project_scope": project_scope}
         )
+
+        langs = ["go", "java", "python", "javascript", "typescript", "csharp"]
+        for lang in langs:
+            backend_code = replace_ignore_case(backend_code, f"```{lang}", "")
+        backend_code = backend_code.replace("```", "")
         return {
             "keys": {
                 "input": input,
@@ -223,7 +218,6 @@ class AICodeApiGenService(object):
         }
 
     async def invoke(self, email: str, inputs: ApiGenerateInputs):
-        self.__init_path(email=email)
         pInputs = {"keys": inputs.model_dump()}
         workflow = StateGraph(self.GraphState)
 
