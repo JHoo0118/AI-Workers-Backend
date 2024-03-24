@@ -181,7 +181,7 @@ class SupabaseAuthService(object):
 
             return LogInOutputs(
                 access_token=access_token,
-                refresh_token=refresh_token,
+                # refresh_token=refresh_token,
             )
 
         except Exception as e:

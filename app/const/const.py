@@ -8,3 +8,5 @@ file_output_dir: dict[str, str] = {
 
 FILE_BUCKET_NAME = "Files"
 SIGNUP_TYPE_GOOGLE = "GOOGLE"
+
+TASK_AI_API_GEN = "TASK_AI_API_GEN"
