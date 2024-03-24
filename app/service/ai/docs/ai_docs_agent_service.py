@@ -627,7 +627,7 @@ class AIDocsAgentService(object):
             # finally:
             #     self._callback.done.set()
             # await task
-            final_response = await app.ainvoke(inputs, {"recursion_limit": 10})
+            final_response = await app.ainvoke(inputs, {"recursion_limit": 25})
             return final_response["keys"]["generation"]
         except:
             return "해당 문서에서 질문에 대한 답을 찾을 수 없습니다."
