@@ -242,7 +242,7 @@ class AICodeApiGenService(object):
         app = workflow.compile()
 
         try:
-            final_response = await app.ainvoke(pInputs, {"recursion_limit": 10})
+            final_response = await app.ainvoke(pInputs, {"recursion_limit": 25})
             return final_response["keys"]["backend_code"]
         except:
             raise HTTPException(
