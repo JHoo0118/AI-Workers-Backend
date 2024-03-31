@@ -5,6 +5,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from app.model.ai.code.sql_entity.ai_sql_entity_model import SqlToEntityGenerateInputs
 from app.utils.data_utils import replace_ignore_case
+from app.const.const import langs
 
 
 class AICodeSqlService(object):
@@ -61,7 +62,6 @@ class AICodeSqlService(object):
         # Run
         result = await chain.ainvoke(inputs.model_dump())
 
-        langs = ["go", "java", "python", "javascript", "typescript", "csharp"]
         for lang in langs:
             result = replace_ignore_case(result, f"```{lang}", "")
         result = result.replace("```", "")

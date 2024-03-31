@@ -6,8 +6,14 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
-
 from langchain.prompts import ChatPromptTemplate
+from langchain_community.chat_message_histories.upstash_redis import (
+    UpstashRedisChatMessageHistory,
+)
+
+PREFIX = "sql-gen"
+UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL")
+UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 
 
 class AISqlGenService(object):
@@ -15,13 +21,22 @@ class AISqlGenService(object):
     _memory_llm: ChatOpenAI
     _memory: ConversationSummaryBufferMemory
 
-    def __new__(class_, *args, **kwargs):
+    def __new__(class_, email, *args, **kwargs):
         if not isinstance(class_._instance, class_):
             class_._instance = object.__new__(class_, *args, **kwargs)
 
         return class_._instance
 
-    def __init__(self):
+    def __init__(self, email):
+
+        history = UpstashRedisChatMessageHistory(
+            url=UPSTASH_REDIS_REST_URL,
+            token=UPSTASH_REDIS_REST_TOKEN,
+            session_id=email,
+            ttl=60 * 60 * 2,
+            key_prefix=f"{PREFIX}-{email}",
+        )
+
         self._memory_llm = ChatOpenAI(
             temperature=0.1,
             model="gpt-4-0125-preview",
@@ -32,6 +47,7 @@ class AISqlGenService(object):
             max_token_limit=500,
             memory_key="chat_history",
             return_messages=True,
+            chat_memory=history,
         )
 
     def save_message(self, input, output):

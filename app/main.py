@@ -36,6 +36,7 @@ app = FastAPI(lifespan=lifespan)
 allow_origins = [
     "http://localhost:3000",
     "https://smartaiworkers.com",
+    "https://www.smartaiworkers.com",
 ]
 app.add_middleware(
     CORSMiddleware,

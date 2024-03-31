@@ -11,6 +11,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from app.model.ai.code.api_gen.ai_api_gen_model import ApiGenerateInputs
 from app.utils.data_utils import replace_ignore_case
+from app.const.const import langs
 
 
 class AICodeApiGenService(object):
@@ -204,7 +205,6 @@ class AICodeApiGenService(object):
             {"input": input, "framework": framework, "project_scope": project_scope}
         )
 
-        langs = ["go", "java", "python", "javascript", "typescript", "csharp"]
         for lang in langs:
             backend_code = replace_ignore_case(backend_code, f"```{lang}", "")
         backend_code = backend_code.replace("```", "")

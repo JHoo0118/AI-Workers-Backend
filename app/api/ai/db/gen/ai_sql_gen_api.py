@@ -25,7 +25,7 @@ async def generate_sql(
     lastMessage = body.messages[-1]
 
     return StreamingResponse(
-        AISqlGenService().invoke_chain(
+        AISqlGenService(email).invoke_chain(
             email=email,
             message=lastMessage.content,
         ),

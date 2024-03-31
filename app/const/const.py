@@ -10,3 +10,19 @@ FILE_BUCKET_NAME = "Files"
 SIGNUP_TYPE_GOOGLE = "GOOGLE"
 
 TASK_AI_API_GEN = "TASK_AI_API_GEN"
+
+langs = [
+    "go",
+    "java",
+    "python",
+    "javascript",
+    "typescript",
+    "csharp",
+    "dart",
+    "rust",
+    "c_cpp",
+    "kotlin",
+    "swift",
+    "r",
+    "ruby",
+]
