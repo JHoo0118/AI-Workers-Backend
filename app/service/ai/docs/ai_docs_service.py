@@ -10,6 +10,7 @@ from upstash_redis import Redis
 from langchain_community.chat_message_histories.upstash_redis import (
     UpstashRedisChatMessageHistory,
 )
+from langchain.storage import LocalFileStore
 from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain_openai import OpenAIEmbeddings
@@ -105,6 +106,7 @@ class AIDocsService(object):
         os.makedirs(self._tmp_usage_dir, exist_ok=True)
 
     def __init_path(self, email: str):
+        os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
         os.makedirs(f"{self._tmp_usage_dir}/{email}/docs", exist_ok=True)
 
     def load_json(self, path):
@@ -201,11 +203,13 @@ class AIDocsService(object):
                 email=email, tmp_usage_path=tmp_usage_path, filename=pFilename, ip=ip
             )
 
-            cache_dir = UpstashRedisByteStore(
-                client=redis_client,
-                ttl=60 * 60 * 2,
-                namespace=f"{PREFIX}-{pFilename}-{email}",
-            )
+            # cache_dir = UpstashRedisByteStore(
+            #     client=redis_client,
+            #     ttl=60 * 60 * 2,
+            #     namespace=f"{PREFIX}-{pFilename}-{email}",
+            # )
+
+            cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
             loader = UnstructuredFileLoader(tmp_usage_path)
             docs = loader.load_and_split(text_splitter=splitter)
             cached_embeddings = CacheBackedEmbeddings.from_bytes_store(

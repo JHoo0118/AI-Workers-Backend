@@ -45,7 +45,17 @@ class SchedulerService(object):
             },
         )
 
-        tmp_file_path_list = [file.tmpFilePath for file in files]
+        prisma.documents.delete_many(
+            where={
+                "createdAt": {
+                    "lte": beforeHours(getNow(), 2),
+                }
+            }
+        )
+
+        tmp_file_path_list = [
+            (file.userEmail, file.tmpFilePath, file.filename) for file in files
+        ]
         file_path_list = [file.filePath for file in files]
         id_list = [file.id for file in files]
         if len(file_path_list) > 0:
@@ -53,10 +63,16 @@ class SchedulerService(object):
                 file_path_list=file_path_list, id_list=id_list
             )
 
-            for tmp_file_path in tmp_file_path_list:
+            for info in tmp_file_path_list:
+                email, tmp_file_path, filename = info
                 if tmp_file_path is None:
                     continue
                 FileService().delete_file(tmp_file_path)
+                if email is not None:
+                    print(f"./.cache/docs/embeddings/{email}/{filename}")
+                    FileService().delete_dir_with_contents(
+                        f"./.cache/docs/embeddings/{email}/{filename}"
+                    )
 
             print(f"delete result: {result}")
 

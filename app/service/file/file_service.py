@@ -4,6 +4,7 @@ import pathlib
 import math
 import uuid
 import time
+import shutil
 
 from app.service.crypto.crypto_service import CryptoService
 
@@ -50,3 +51,8 @@ class FileService(object):
         suffix = f"{suffix}-{u4}-{curr_ms}"
         file_extension = self.get_file_extension(filename=filename)
         return f"{suffix}.{file_extension}"
+
+    def delete_dir_with_contents(self, path: str):
+        dir_path = pathlib.Path(path)
+        if dir_path.exists() and dir_path.is_dir():
+            shutil.rmtree(dir_path)
