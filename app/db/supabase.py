@@ -15,12 +15,14 @@ load_dotenv()
 
 url: str = os.getenv("SUPABASE_URL")
 key: str = os.getenv("SUPABASE_KEY")
+service_key: str = os.getenv("SUPABASE_SERVICE_KEY")
 
 
 class SupabaseService(object):
     _initialized = False
     _instance = None
     supabase: Client
+    supabase_admin: Client
     # pattern: str = r"^(\w|\/|!|-|\*|\'|\(|\)| |&|\$|@|=|;|:|\+|,|\?)*$"
     # pattern: str = r"[!@#$%^&*()\/_=:\+,\?\'\"\[\]\{\}\|\`]"
 
@@ -34,6 +36,7 @@ class SupabaseService(object):
         if not self._initialized:
             self._initialized = True
             self.supabase = create_client(url, key)
+            self.supabase_admin = create_client(url, service_key)
 
     def check_file_exists_on_supabase(self, file_path: str, filename: str) -> bool:
         try:

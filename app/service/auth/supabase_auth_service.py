@@ -232,3 +232,19 @@ class SupabaseAuthService(object):
                 access_token=res.access_token,
                 refresh_token=res.refresh_token,
             )
+
+    async def delete_account(self, token: str, email: str) -> bool:
+        try:
+            res = self._supabaseService.supabase.auth.get_user(jwt=token)
+
+            await self.logout(email=email)
+            self._supabaseService.supabase_admin.auth.admin.delete_user(id=res.user.id)
+            prisma.user.delete(where={"email": email})
+            return True
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="회원탈퇴에 실패했습니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )

@@ -11,8 +11,10 @@ from app.model.auth.auth_model import (
     SignUpInputs,
     SignUpOutputs,
 )
+from app.model.user.user_model import UserModel
 from app.service.auth import AuthService, SupabaseAuthService
 from app.service.auth.jwt_bearer import JwtBearer
+from app.service.auth.auth_service import oauth2_scheme
 
 ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24 * 7
 REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 7
@@ -126,3 +128,11 @@ async def refresh_tokens(
         # max_age=REFRESH_TOKEN_MAX_AGE,
     )
     return refresh_tokens_outputs
+
+
+@router.delete("/leave")
+async def refresh_tokens(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    email: Annotated[UserModel, Depends(JwtBearer(only_email=True))],
+) -> bool:
+    return await SupabaseAuthService().delete_account(token=token, email=email)
