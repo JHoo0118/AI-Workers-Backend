@@ -123,16 +123,16 @@ class SupabaseAuthService(object):
             )
 
     def login_google(self) -> str:
-        # return f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&scope=openid%20profile%20email&access_type=offline"
-        res = self._supabaseService.supabase.auth.sign_in_with_oauth(
-            credentials={
-                "provider": "google",
-                "options": {
-                    "redirect_to": GOOGLE_REDIRECT_URI,
-                },
-            }
-        )
-        return res.url
+        return f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&scope=openid%20profile%20email&access_type=offline"
+        # res = self._supabaseService.supabase.auth.sign_in_with_oauth(
+        #     credentials={
+        #         "provider": "google",
+        #         "options": {
+        #             "redirect_to": GOOGLE_REDIRECT_URI,
+        #         },
+        #     }
+        # )
+        # return res.url
 
     async def callback_google(self, code: str) -> LogInOutputs:
         forbbiden_exception = HTTPException(
@@ -163,6 +163,20 @@ class SupabaseAuthService(object):
             )
             user_info_json: dict = user_info.json()
             email = user_info_json.get("email")
+
+            self._supabaseService.supabase_admin.auth.admin.create_user(
+                attributes={
+                    "email": email,
+                    "user_metadata": {
+                        "name": email,
+                    },
+                    "app_metadata": {
+                        "provider": "Google",
+                        "providers": ["Google"],
+                    },
+                    "email_confirm": True,
+                }
+            )
             with prisma.tx() as transaction:
                 user: User = transaction.user.find_unique(where={"email": email})
                 if user is None:
@@ -176,15 +190,25 @@ class SupabaseAuthService(object):
                 # access_token, refresh_token = self._jwtService.get_tokens(
                 #     data={"sub": email},
                 # )
+            res = self._supabaseService.supabase.auth.sign_in_with_oauth(
+                credentials={
+                    "provider": "google",
+                    "options": {
+                        "redirect_to": GOOGLE_REDIRECT_URI,
+                    },
+                }
+            )
+            print(res)
 
             # await self.update_rt_hash(email=user.email, rt=refresh_token)
 
             return LogInOutputs(
-                access_token=access_token,
-                # refresh_token=refresh_token,
+                access_token=res.session.access_token,
+                refresh_token=res.session.refresh_token,
             )
 
         except Exception as e:
+            print(e)
             raise forbbiden_exception
 
     async def sign_up(self, sign_up_inputs: SignUpInputs) -> SignUpOutputs:

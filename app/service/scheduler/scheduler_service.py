@@ -73,6 +73,9 @@ class SchedulerService(object):
                     FileService().delete_dir_with_contents(
                         f"./.cache/docs/embeddings/{email}/{filename}"
                     )
+                    FileService().delete_dir_with_contents(
+                        f"./tmp_usage_files/{email}/docs/{filename}"
+                    )
 
             print(f"delete result: {result}")
 

@@ -20,7 +20,7 @@ venv/
 .env.prod
 .env.dev
 env/
-tmp_files/
-tmp_usage_files/
+tmp_files*/
+tmp_usage_files*/
 
 requirements.txt-snapshot
