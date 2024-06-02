@@ -136,6 +136,5 @@ async def docs_summary_serve(
         ip=request.client.host,
         jwt=f"Bearer {request.cookies['accessToken']}",
     )
-    print(result)
     # return DocsSummaryServeOutputs(content=result)
     return DocsSummaryServeOutputs(content=json.loads(result))

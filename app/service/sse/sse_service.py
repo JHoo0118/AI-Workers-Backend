@@ -102,5 +102,4 @@ class SSEService(object):
                 path=docs_summary_serve_inputs.path,
                 ip=request.client.host,
             )
-            print(result)
             return json.dumps(result, indent=4)

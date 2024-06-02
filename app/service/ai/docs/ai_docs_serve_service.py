@@ -16,7 +16,8 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain.storage import LocalFileStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
+from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain.storage.upstash_redis import UpstashRedisByteStore
 from langchain_community.vectorstores.supabase import SupabaseVectorStore
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.memory import ConversationSummaryBufferMemory

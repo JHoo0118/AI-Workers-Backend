@@ -20,8 +20,8 @@ from langchain_community.chat_message_histories.upstash_redis import (
 )
 from langchain.storage import LocalFileStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
-from langchain_community.storage import UpstashRedisByteStore
+from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain.storage.upstash_redis import UpstashRedisByteStore
 from langchain_community.vectorstores.supabase import SupabaseVectorStore
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.memory import ConversationSummaryBufferMemory

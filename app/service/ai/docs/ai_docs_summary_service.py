@@ -11,7 +11,8 @@ from langchain_community.chat_message_histories.upstash_redis import (
     UpstashRedisChatMessageHistory,
 )
 from langchain.storage import LocalFileStore
-from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
+from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain.storage.upstash_redis import UpstashRedisByteStore
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.storage import UpstashRedisByteStore
