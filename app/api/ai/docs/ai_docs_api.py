@@ -1,12 +1,19 @@
+import json
 from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response, UploadFile, Body
 from fastapi.responses import StreamingResponse
-
 from app.model.user.user_model import UserModel
+from app.service.ai.docs.ai_docs_serve_ver2_service import AIDocsServeVer2Service
 from app.service.ai.docs.ai_docs_service import AIDocsService
+from app.service.ai.docs.ai_docs_serve_service import AIDocsServeService
 from app.service.auth.jwt_bearer import JwtBearer
 from app.service.ai.docs.ai_docs_agent_service import AIDocsAgentService
-from app.model.ai.docs.ai_docs_model import DocsSummaryAskInputs, DocsSummaryAskOutputs
+from app.model.ai.docs.ai_docs_model import (
+    DocsSummaryAskInputs,
+    DocsSummaryAskOutputs,
+    DocsSummaryServeEmbedOutputs,
+    DocsSummaryServeOutputs,
+)
 from app.service.auth.auth_service import oauth2_scheme
 
 
@@ -91,3 +98,44 @@ async def docs_summary_ask_agent(
     )
 
     return Response(content=result)
+
+
+@router.post("/summary/embed-serve")
+async def docs_summary_serve(
+    request: Request,
+    email: Annotated[UserModel, Depends(JwtBearer(only_email=True))],
+    file: UploadFile,
+    token: str = Depends(oauth2_scheme),
+) -> DocsSummaryServeEmbedOutputs:
+    result = AIDocsServeVer2Service(email).embed_file(
+        email=email,
+        file=file,
+        ip=request.client.host,
+        jwt=f"Bearer {request.cookies['accessToken']}",
+        usage_path=True,
+    )
+    return DocsSummaryServeEmbedOutputs(path=result)
+
+
+@router.post("/summary/serve")
+async def docs_summary_serve(
+    request: Request,
+    email: Annotated[UserModel, Depends(JwtBearer(only_email=True))],
+    file: UploadFile,
+    token: str = Depends(oauth2_scheme),
+) -> DocsSummaryServeOutputs:
+    # result = await AIDocsServeService(email).invoke_chain(
+    #     email=email,
+    #     file=file,
+    #     ip=request.client.host,
+    #     jwt=f"Bearer {request.cookies['accessToken']}",
+    # )
+    result = AIDocsServeVer2Service(email).summarize_text_by_page(
+        email=email,
+        file=file,
+        ip=request.client.host,
+        jwt=f"Bearer {request.cookies['accessToken']}",
+    )
+    print(result)
+    # return DocsSummaryServeOutputs(content=result)
+    return DocsSummaryServeOutputs(content=json.loads(result))

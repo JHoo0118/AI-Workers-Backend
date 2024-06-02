@@ -59,6 +59,9 @@ class AIAlgorithmAdvisorService(object):
         Use the following language to solve the problem: {lang}
         user input is: {user_input}
 
+
+        IMPORTANT: If it is related to the previous question of the user's question, refer to the previous question and answer. If not, follow the following instructions.
+
         1. **Understand the Problem:** Clearly define and understand the problem statement. Identify the inputs, outputs, and any constraints or special conditions.
         2. **Choose the Appropriate Algorithm:** Based on the problem type, complexity, and constraints, select an algorithm or data structure that best fits. Consider time and space complexity, scalability, and the nature of the data.
         3. **Outline the Algorithm:** Provide a step-by-step description of how the algorithm works. This might include initializing variables, loops, conditionals, recursive calls, or the use of specific data structures.
@@ -105,6 +108,7 @@ class AIAlgorithmAdvisorService(object):
         7. Discuss Time and Space Complexity:
         - Time Complexity: O(n), where n is the number of elements in the array.
         - Space Complexity: O(n), due to the additional hash table.
+        
 
         """
         )

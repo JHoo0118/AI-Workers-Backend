@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, UploadFile, status
 from upstash_redis import Redis
 from langchain import hub
+from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers.openai_tools import PydanticToolsParser
 from langchain.prompts import PromptTemplate
 from langchain.callbacks import AsyncIteratorCallbackHandler
@@ -19,8 +20,8 @@ from langchain_community.chat_message_histories.upstash_redis import (
 )
 from langchain.storage import LocalFileStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.document_loaders import UnstructuredFileLoader
-from langchain.storage.upstash_redis import UpstashRedisByteStore
+from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
+from langchain_community.storage import UpstashRedisByteStore
 from langchain_community.vectorstores.supabase import SupabaseVectorStore
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.memory import ConversationSummaryBufferMemory
@@ -117,6 +118,7 @@ class AIDocsAgentService(object):
         ip: str,
         jwt: str,
     ):
+        self._retriever = None
         file_content = file.file.read()
         filename = file.filename
         dest = f"{self._tmp_usage_dir}/{email}/docs"
@@ -238,7 +240,10 @@ class AIDocsAgentService(object):
 
     def retrieve(self, state):
         """
-        Retrieve documents
+        Retrieve documents,
+        If a user makes a request like "Summarize the whole thing" or something, use all the documents,
+        and if he makes a request like "Summarize page 4," use only the documents corresponding to page 4.
+        Important: Do not refer to documents other than those to answer.
 
         Args:
             state (dict): The current graph state
@@ -268,10 +273,28 @@ class AIDocsAgentService(object):
         documents = state_dict["documents"]
 
         # Prompt
-        prompt = hub.pull("rlm/rag-prompt")
+        # prompt = hub.pull("rlm/rag-prompt")
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+                    You're a master of document summarization.
+                    IMPORTANT: Answer the question ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+                    IMPORTANT: Do not refer to documents other than those to answer.
+                    If a user makes a request like "Summarize the whole thing" or something, use all the documents,
+                    and if he makes a request like "Summarize page 4," use only the documents corresponding to page 4.
+                    Context: {context}
+
+                    IMPORTATNT: If the user doesn't ask you to answer in any language, please generate answer in the language you asked.
+                    """,
+                ),
+                ("human", "{question}"),
+            ]
+        )
 
         # LLM
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-4-0125-preview", temperature=0)
 
         # Post-processing
         def format_docs(self, docs):
@@ -312,8 +335,8 @@ class AIDocsAgentService(object):
 
             binary_score: str = Field(description="Relevance score 'yes' or 'no'")
 
-        # LLM gpt-4-0125-preview
-        model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-1106", streaming=True)
+        # LLM gpt-3.5-turbo-1106
+        model = ChatOpenAI(temperature=0, model="gpt-4-0125-preview", streaming=True)
 
         # Tool
         grade_tool_oai = convert_to_openai_tool(grade)
@@ -383,7 +406,7 @@ class AIDocsAgentService(object):
         )
 
         # Grader
-        model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-1106", streaming=True)
+        model = ChatOpenAI(temperature=0, model="gpt-4-0125-preview", streaming=True)
 
         # Prompt
         chain = prompt | model | StrOutputParser()
@@ -468,7 +491,7 @@ class AIDocsAgentService(object):
             binary_score: str = Field(description="Supported score 'yes' or 'no'")
 
         # LLM
-        model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-1106", streaming=True)
+        model = ChatOpenAI(temperature=0, model="gpt-4-0125-preview", streaming=True)
 
         # Tool
         grade_tool_oai = convert_to_openai_tool(grade)
@@ -533,7 +556,7 @@ class AIDocsAgentService(object):
         # LLM
         model = ChatOpenAI(
             temperature=0,
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4-0125-preview",
             streaming=True,
             # callbacks=[self._callback],
         )
@@ -631,7 +654,7 @@ class AIDocsAgentService(object):
             # finally:
             #     self._callback.done.set()
             # await task
-            final_response = await app.ainvoke(inputs, {"recursion_limit": 25})
+            final_response = await app.ainvoke(inputs, {"recursion_limit": 30})
             return final_response["keys"]["generation"]
         except:
             return "해당 문서에서 질문에 대한 답을 찾을 수 없습니다."

@@ -41,11 +41,12 @@ prompt = ChatPromptTemplate.from_messages(
             """
             You're a master of document summarization.
             IMPORTANT: Answer the question ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+            IMPORTANT: Do not refer to documents other than those to answer.
             Context: {context}
 
             And you will get about summaried context of previous chat. If it's empty you don't have to care
             Previous-chat-context: {chat_history}
-            IMPORTATNT: Please do all the answers in Korean.
+            IMPORTATNT: If the user doesn't ask you to answer in any language, please generate answer in the language you asked.
             """,
         ),
         ("human", "{question}"),
@@ -61,7 +62,7 @@ splitter = CharacterTextSplitter.from_tiktoken_encoder(
 embeddings = OpenAIEmbeddings()
 
 
-class AIDocsService(object):
+class AIDocsSummaryService(object):
     _instance = None
     _memory_llm: ChatOpenAI
     _memory: ConversationSummaryBufferMemory
@@ -265,7 +266,6 @@ class AIDocsService(object):
     ) -> AsyncGenerator[str, None]:
         self.__init_path(email=email)
         llm = ChatOpenAI(
-            # "gpt-4-0125-preview"
             model="gpt-4-0125-preview",
             temperature=0.1,
             streaming=True,

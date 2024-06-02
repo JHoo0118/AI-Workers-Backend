@@ -62,7 +62,7 @@ class AIDiagramSeqDiagramService(object):
         )
 
         # LLM gpt-3.5-turbo gpt-4-0125-preview"
-        llm = ChatOpenAI(model_name="gpt-4-0125-preview", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
         # llm = ChatOllama(model="mistral:latest")
 
         # Chain
@@ -75,6 +75,7 @@ class AIDiagramSeqDiagramService(object):
     def convert_to_mermaidjs_code(self, state):
         """
         Convert summarized user request to mermaidjs code for making a sequence diagram.
+        If the user doesn't ask you to answer in any language, please generate answer in the language you asked.
 
         Args:
             state (dict): The current graph state
@@ -96,6 +97,17 @@ class AIDiagramSeqDiagramService(object):
         - Incorporate advanced diagramming features such as activation bars to indicate when a participant is active, loops for repetitive actions, and conditional blocks to represent decision-making processes.
         - Include comments to explain complex parts of the diagram or to provide additional context.
         - Just print out mermaidjs code, do not user markdown. Your answer starts with 'sequenceDiagram'.
+        - Trying to inactivate an inactive participant.
+        - You MUST clearly use deactivation and reactivation to prevent errors like this
+        sequenceDiagram
+            participant A
+            participant B
+            A ->> B: 메시지 1
+            deactivate B
+            A ->> B: 메시지 2
+            activate B
+            deactivate B
+            
 
         user request: {request}
         answer: ? """,

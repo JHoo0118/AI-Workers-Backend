@@ -3,8 +3,9 @@ import asyncio
 from typing import Any, Callable, Optional
 from fastapi import Request
 from sse_starlette import EventSourceResponse
-from app.const.const import TASK_AI_API_GEN
+from app.const.const import TASK_AI_API_GEN, TASK_AI_DOCS_SUMMARY_SERVE
 from app.model.ai.code.api_gen.ai_api_gen_model import ApiGenerateInputs
+from app.model.ai.docs.ai_docs_model import DocsSummaryServeInputs
 from app.model.common.event_model import (
     EventModel,
     SSEEmitInputs,
@@ -12,6 +13,7 @@ from app.model.common.event_model import (
     SSEEvent,
 )
 from app.service.ai.code.api_gen.ai_api_gen_service import AICodeApiGenService
+from app.service.ai.docs.ai_docs_serve_ver2_service import AIDocsServeVer2Service
 from app.utils.datetime_utils import getNow
 
 
@@ -67,6 +69,7 @@ class SSEService(object):
                 if sse_event.completed is not True:
                     yield sse_event.model_dump_json(by_alias=True)
                     result = await self.__do_task(
+                        request=request,
                         email=email,
                         task_type=sse_event.task_type,
                         request_body=sse_event.request_body,
@@ -79,7 +82,9 @@ class SSEService(object):
 
             await asyncio.sleep(1)
 
-    async def __do_task(self, email: str, task_type: str, request_body: Any):
+    async def __do_task(
+        self, request: Request, email: str, task_type: str, request_body: Any
+    ):
         if task_type == TASK_AI_API_GEN and request_body is not None:
             request_body_json = json.loads(request_body)
             api_generate_inputs = ApiGenerateInputs(**request_body_json)
@@ -87,3 +92,15 @@ class SSEService(object):
                 email=email,
                 inputs=api_generate_inputs,
             )
+        elif task_type == TASK_AI_DOCS_SUMMARY_SERVE and request_body is not None:
+            request_body_json = json.loads(request_body)
+            docs_summary_serve_inputs = DocsSummaryServeInputs(**request_body_json)
+            result = await AIDocsServeVer2Service(
+                email
+            ).summarize_text_by_page_for_stream(
+                email=email,
+                path=docs_summary_serve_inputs.path,
+                ip=request.client.host,
+            )
+            print(result)
+            return json.dumps(result, indent=4)

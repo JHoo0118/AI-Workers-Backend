@@ -194,7 +194,9 @@ class AIDiagramErdService(object):
             input_variables=["query"],
         )
         # LLM
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, max_tokens=1000)
+        llm = ChatOpenAI(
+            model_name="gpt-4-0125-preview", temperature=0, max_tokens=1000
+        )
 
         # Chain
         rag_chain = prompt | llm | StrOutputParser()

@@ -74,6 +74,8 @@ class AISqlGenService(object):
                     "system",
                     """You are Database Design & Database Architecture EXPERT!!
 
+                    IMPORTANT: If it is related to the previous question of the user's question, refer to the previous question and answer. If not, follow the following instructions.
+
                     OUTPUT
                     1. First, converts user request into a short summarized goal
                     2. You can search the database architect based on the summarized goals.
