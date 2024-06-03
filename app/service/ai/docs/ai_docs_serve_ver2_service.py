@@ -1,5 +1,6 @@
 import os
 import shutil
+from collections import defaultdict
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from dotenv import load_dotenv
 from fastapi import HTTPException, UploadFile, status
@@ -97,7 +98,8 @@ class AIDocsServeVer2Service(object):
             )
             loader = PyPDFLoader(tmp_usage_path)
             pdf_document = loader.load_and_split()
-            return pdf_document
+            combined_document = self.combine_duplicate_pages(pdf_document)
+            return combined_document
         except Exception as e:
             print(e)
             tmp_usage_path = f"{self._tmp_usage_dir}/{email}/docs/{pFilename}"
@@ -181,12 +183,28 @@ class AIDocsServeVer2Service(object):
 
         return summary["output_text"]
 
+    def combine_duplicate_pages(self, pdf_document: list[Document]):
+        combined_pages = defaultdict(str)
+        page_metadata = {}
+
+        for page in pdf_document:
+            page_number = page.metadata["page"]
+            combined_pages[page_number] += page.page_content
+            page_metadata[page_number] = page.metadata
+
+        sorted_pages = [
+            Document(page_content=combined_pages[page], metadata=page_metadata[page])
+            for page in sorted(combined_pages.keys())
+        ]
+
+        return sorted_pages
+
     async def summarize_text_by_page_for_stream(self, email: str, path: str, ip: str):
         pdf_document = self.extract_text_from_pdf(email=email, filename=path, ip=ip)
 
         refine_template = (
             "모든 답변은 한국어로 해주세요."
-            "Your job is to produce a final summary and translate into Korean\n"
+            "You are the expert who wrote the article. Your job is to produce a final summary and translate into Korean\n"
             "We have provided an existing summary up to a certain point: {existing_answer}\n"
             "We have the opportunity to refine the existing summary"
             "(only if needed) with some more context below.\n"
@@ -196,16 +214,18 @@ class AIDocsServeVer2Service(object):
             """
 
             IMPORTANT: Translate into Korean.
+            IMPORTANT: I will give you the page number and the document. Please summarize the document by page number.
             IMPORTANT: Be sure to put in the key points and summarize them in detail.
-            IMPORTANT: If the context isn't useful, return the original summary and translate into Korean.
             """
         )
         refine_prompt = PromptTemplate.from_template(refine_template)
 
-        llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
         summaries = []
-        for page_number in range(1, len(pdf_document) + 1):
-            view = pdf_document[page_number - 1]
+        page_summaries: dict[str, dict[str, str]] = {}
+        for page_index in range(1, len(pdf_document) + 1):
+            view = pdf_document[page_index - 1]
+            page_number = view.metadata.get("page")
             texts = splitter.split_text(view.page_content)
             docs = [Document(page_content=t) for t in texts]
             chain = load_summarize_chain(
@@ -220,14 +240,21 @@ class AIDocsServeVer2Service(object):
                 {"input_documents": docs},
                 return_only_outputs=True,
             )
-            page_summary = {
-                "page": str(page_number - 1),
-                "summary": summary["output_text"],
-            }
+            str_page_number = str(page_number)
+            if page_summaries.get(str_page_number):
+                page_summaries[str_page_number]["summary"] += (
+                    page_summaries[str_page_number]["summary"]
+                    + "\n"
+                    + summary["output_text"]
+                )
+            else:
+                page_summary = {
+                    "page": str_page_number,
+                    "summary": summary["output_text"],
+                }
+                page_summaries[str_page_number] = page_summary
 
-            summaries.append(page_summary)
-
-        # return summary["output_text"]
+        summaries = [page_summaries[key] for key in sorted(page_summaries)]
         return summaries
 
     def embed_file(
