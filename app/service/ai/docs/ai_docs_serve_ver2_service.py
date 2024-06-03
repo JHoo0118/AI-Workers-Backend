@@ -97,9 +97,11 @@ class AIDocsServeVer2Service(object):
                 email=email, tmp_usage_path=tmp_usage_path, filename=pFilename, ip=ip
             )
             loader = PyPDFLoader(tmp_usage_path)
-            pdf_document = loader.load_and_split()
-            combined_document = self.combine_duplicate_pages(pdf_document)
-            return combined_document
+            # pdf_document = loader.load_and_split()
+            pdf_document = loader.load()
+            # combined_document = self.combine_duplicate_pages(pdf_document)
+            # return combined_document
+            return pdf_document
         except Exception as e:
             print(e)
             tmp_usage_path = f"{self._tmp_usage_dir}/{email}/docs/{pFilename}"
@@ -161,7 +163,7 @@ class AIDocsServeVer2Service(object):
         )
         refine_prompt = PromptTemplate.from_template(refine_template)
 
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
         texts = []
         for page_number in range(1, len(pdf_document) + 1):
             view = pdf_document[page_number - 1]
@@ -220,7 +222,7 @@ class AIDocsServeVer2Service(object):
         )
         refine_prompt = PromptTemplate.from_template(refine_template)
 
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
         summaries = []
         page_summaries: dict[str, dict[str, str]] = {}
         for page_index in range(1, len(pdf_document) + 1):
@@ -243,10 +245,9 @@ class AIDocsServeVer2Service(object):
             str_page_number = str(page_number)
             if page_summaries.get(str_page_number):
                 page_summaries[str_page_number]["summary"] += (
-                    page_summaries[str_page_number]["summary"]
-                    + "\n"
-                    + summary["output_text"]
+                    "\n" + summary["output_text"]
                 )
+
             else:
                 page_summary = {
                     "page": str_page_number,
