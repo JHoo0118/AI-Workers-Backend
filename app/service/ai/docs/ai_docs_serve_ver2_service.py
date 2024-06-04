@@ -54,7 +54,7 @@ class AIDocsServeVer2Service(object):
         os.makedirs(self._tmp_usage_dir, exist_ok=True)
 
     def __init_path(self, email: str):
-        os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
+        # os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
         os.makedirs(f"{self._tmp_usage_dir}/{email}/docs", exist_ok=True)
 
     def get_supabase_output_file_path(self, email: str, filename: str):
@@ -112,79 +112,6 @@ class AIDocsServeVer2Service(object):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    def summarize_text_by_page(self, email: str, file: UploadFile, ip: str, jwt: str):
-        pdf_document = self.embed_file(email=email, file=file, ip=ip, jwt=jwt)
-
-        refine_template = (
-            "Your job is to produce a final summary\n"
-            "We have provided an existing summary up to a certain point: {existing_answer}\n"
-            "We have the opportunity to refine the existing summary"
-            "(only if needed) with some more context below.\n"
-            "------------\n"
-            "{text}\n"
-            "------------\n"
-            """
-            You need to make sure that the answer is answered in the following json format.
-            [
-                {{
-                    "page": "0",
-                    "summary": Page 0 Summary contents...
-                    "keyword": something,
-                }},
-                {{
-                    "page": "1",
-                    "summary": Page 1 Summary contents...
-                    "keyword": something,
-                }},
-                {{
-                    "page": "2",
-                    "summary": Page 2 Summary contents...
-                    "keyword": something,
-                }},
-                {{  "page": "3",
-                    "summary": Page 3 Summary contents...
-                    "keyword": something,
-                }},
-                {{  "page": "4",
-                    "summary": Page 4 Summary contents...
-                    "keyword": something,
-                }},
-                ...
-            ]
-            Your turn !
-            the answer array length is equal to {total_pages}. so each of the {total_pages} pages must be summarized.
-            page is page number. initial page number is 0. this prproperty matched by 'page' property of documents object.
-            summary is Summary of that page of document. if page property value is "1", you should only include summary of page "1" of documents"
-            keyword: Key Keywords on that page. refer 'page' property.
-            """
-            "IMPORTANT: Summarize it in Korean."
-            "IMPORTANT: I will give you the page number and the document. Please summarize the document by page number."
-            "IMPORTANT: If the user doesn't ask you to answer in any language, please generate answer in the language you asked."
-        )
-        refine_prompt = PromptTemplate.from_template(refine_template)
-
-        llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
-        texts = []
-        for page_number in range(1, len(pdf_document) + 1):
-            view = pdf_document[page_number - 1]
-            page_texts = splitter.split_text(view.page_content)
-            texts.extend(page_texts)
-        docs = [Document(page_content=t) for t in texts]
-        chain = load_summarize_chain(
-            llm,
-            chain_type="refine",
-            refine_prompt=refine_prompt,
-            return_intermediate_steps=True,
-            input_key="input_documents",
-            output_key="output_text",
-        )
-        summary = chain.invoke(
-            {"input_documents": docs, "total_pages": len(pdf_document)},
-            return_only_outputs=True,
-        )
-
-        return summary["output_text"]
-
     def combine_duplicate_pages(self, pdf_document: list[Document]):
         combined_pages = defaultdict(str)
         page_metadata = {}
@@ -204,25 +131,19 @@ class AIDocsServeVer2Service(object):
     async def summarize_text_by_page_for_stream(self, email: str, path: str, ip: str):
         pdf_document = self.extract_text_from_pdf(email=email, filename=path, ip=ip)
 
-        refine_template = (
-            "모든 답변은 한국어로 해주세요."
-            "You are the expert who wrote the article. Your job is to produce a final summary and translate into Korean\n"
-            "We have provided an existing summary up to a certain point: {existing_answer}\n"
-            "We have the opportunity to refine the existing summary"
-            "(only if needed) with some more context below.\n"
-            "------------\n"
-            "{text}\n"
-            "------------\n"
+        refine_template = """You are the expert who wrote the article. Your job is to produce a final summary by using Korean\n
+            We have provided an existing summary up to a certain point: {existing_answer}\n
+            We have the opportunity to refine the existing summary
+            You should summary concisely but in detail, do not except key points that you think 
+            At the end of the summary, we briefly list what we think is important in the form of a list.
+            (only if needed) with some more context below.\n
+            ------------\n
+            {text}\n
+            ------------\n
             """
-
-            IMPORTANT: Translate into Korean.
-            IMPORTANT: I will give you the page number and the document. Please summarize the document by page number.
-            IMPORTANT: Be sure to put in the key points and summarize them in detail.
-            """
-        )
         refine_prompt = PromptTemplate.from_template(refine_template)
 
-        llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
         summaries = []
         page_summaries: dict[str, dict[str, str]] = {}
         for page_index in range(1, len(pdf_document) + 1):
@@ -303,3 +224,76 @@ class AIDocsServeVer2Service(object):
                 detail="문서 요약 중 오류가 발생했습니다.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+    def summarize_text_by_page(self, email: str, file: UploadFile, ip: str, jwt: str):
+        pdf_document = self.embed_file(email=email, file=file, ip=ip, jwt=jwt)
+
+        refine_template = (
+            "Your job is to produce a final summary\n"
+            "We have provided an existing summary up to a certain point: {existing_answer}\n"
+            "We have the opportunity to refine the existing summary"
+            "(only if needed) with some more context below.\n"
+            "------------\n"
+            "{text}\n"
+            "------------\n"
+            """
+            You need to make sure that the answer is answered in the following json format.
+            [
+                {{
+                    "page": "0",
+                    "summary": Page 0 Summary contents...
+                    "keyword": something,
+                }},
+                {{
+                    "page": "1",
+                    "summary": Page 1 Summary contents...
+                    "keyword": something,
+                }},
+                {{
+                    "page": "2",
+                    "summary": Page 2 Summary contents...
+                    "keyword": something,
+                }},
+                {{  "page": "3",
+                    "summary": Page 3 Summary contents...
+                    "keyword": something,
+                }},
+                {{  "page": "4",
+                    "summary": Page 4 Summary contents...
+                    "keyword": something,
+                }},
+                ...
+            ]
+            Your turn !
+            the answer array length is equal to {total_pages}. so each of the {total_pages} pages must be summarized.
+            page is page number. initial page number is 0. this prproperty matched by 'page' property of documents object.
+            summary is Summary of that page of document. if page property value is "1", you should only include summary of page "1" of documents"
+            keyword: Key Keywords on that page. refer 'page' property.
+            """
+            "IMPORTANT: Summarize it in Korean."
+            "IMPORTANT: I will give you the page number and the document. Please summarize the document by page number."
+            "IMPORTANT: If the user doesn't ask you to answer in any language, please generate answer in the language you asked."
+        )
+        refine_prompt = PromptTemplate.from_template(refine_template)
+
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+        texts = []
+        for page_number in range(1, len(pdf_document) + 1):
+            view = pdf_document[page_number - 1]
+            page_texts = splitter.split_text(view.page_content)
+            texts.extend(page_texts)
+        docs = [Document(page_content=t) for t in texts]
+        chain = load_summarize_chain(
+            llm,
+            chain_type="refine",
+            refine_prompt=refine_prompt,
+            return_intermediate_steps=True,
+            input_key="input_documents",
+            output_key="output_text",
+        )
+        summary = chain.invoke(
+            {"input_documents": docs, "total_pages": len(pdf_document)},
+            return_only_outputs=True,
+        )
+
+        return summary["output_text"]

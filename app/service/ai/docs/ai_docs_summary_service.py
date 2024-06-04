@@ -214,13 +214,13 @@ class AIDocsSummaryService(object):
             cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
             loader = UnstructuredFileLoader(tmp_usage_path)
             docs = loader.load_and_split(text_splitter=splitter)
-            cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
-                embeddings, cache_dir
-            )
+            # cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
+            #     embeddings, cache_dir
+            # )
 
             vectorstore = SupabaseVectorStore.from_documents(
                 docs,
-                cached_embeddings,
+                embeddings,
                 client=self._supabaseService.supabase,
                 table_name="Documents",
                 query_name="match_documents",

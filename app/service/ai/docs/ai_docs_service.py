@@ -40,13 +40,27 @@ prompt = ChatPromptTemplate.from_messages(
         (
             "system",
             """
-            You're a master of document summarization.
-            IMPORTANT: Answer the question ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+            You are an expert in creating detailed, accurate, and concise summaries. Your task is to generate a summary of a given text while simultaneously evaluating your own summary for accuracy, completeness, and coherence. The self-evaluation process involves identifying any errors or areas for improvement in your initial summary and providing a refined version if necessary. This process is particularly useful for automating dataset generation, AI feedback, and prompt evaluation.
+            Answer the question ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
             Context: {context}
+
+            Create an summary according to the following method.
+
+            - Read the provided text carefully.
+            - Identify the main points and key details.
+            - Generate a concise and coherent summary that captures the essence of the text.
+
+            - Review your summary critically.
+            - Check for any factual inaccuracies, missing key points, or areas that lack clarity.
+            - Highlight specific parts of the summary that need improvement.
+
+            - Revise the summary based on your self-evaluation.
+            - Ensure the final summary is accurate, complete, and coherent.
 
             And you will get about summaried context of previous chat. If it's empty you don't have to care
             Previous-chat-context: {chat_history}
-            IMPORTATNT: Please do all the answers in Korean.
+
+            IMPORTATNT: If the user doesn't ask you to answer in any language, please generate answer in the language you asked.
             """,
         ),
         ("human", "{question}"),
@@ -107,7 +121,7 @@ class AIDocsService(object):
         os.makedirs(self._tmp_usage_dir, exist_ok=True)
 
     def __init_path(self, email: str):
-        os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
+        # os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
         os.makedirs(f"{self._tmp_usage_dir}/{email}/docs", exist_ok=True)
 
     def load_json(self, path):
@@ -213,13 +227,13 @@ class AIDocsService(object):
             cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
             loader = UnstructuredFileLoader(tmp_usage_path)
             docs = loader.load_and_split(text_splitter=splitter)
-            cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
-                embeddings, cache_dir
-            )
+            # cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
+            #     embeddings, cache_dir
+            # )
 
             vectorstore = SupabaseVectorStore.from_documents(
                 docs,
-                cached_embeddings,
+                embeddings,
                 client=self._supabaseService.supabase,
                 table_name="Documents",
                 query_name="match_documents",
@@ -267,7 +281,7 @@ class AIDocsService(object):
         self.__init_path(email=email)
         llm = ChatOpenAI(
             # "gpt-4-0125-preview"
-            model="gpt-4-0125-preview",
+            model="gpt-3.5-turbo",
             temperature=0.1,
             streaming=True,
         )

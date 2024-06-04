@@ -18,9 +18,10 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_community.chat_message_histories.upstash_redis import (
     UpstashRedisChatMessageHistory,
 )
+from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.storage import LocalFileStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.storage.upstash_redis import UpstashRedisByteStore
 from langchain_community.vectorstores.supabase import SupabaseVectorStore
 from langchain.embeddings import CacheBackedEmbeddings
@@ -48,6 +49,7 @@ splitter = CharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=600,
     chunk_overlap=100,
 )
+from operator import itemgetter
 
 embeddings = OpenAIEmbeddings()
 
@@ -73,7 +75,6 @@ class CustomCallbackHandler(AsyncIteratorCallbackHandler):
 
 class AIDocsAgentService(object):
     _instance = None
-    _retriever: VectorStoreRetriever
     _callback: AsyncIteratorCallbackHandler
     _supabaseService: SupabaseService
     _fileService: FileService
@@ -102,8 +103,11 @@ class AIDocsAgentService(object):
         os.makedirs(self._tmp_usage_dir, exist_ok=True)
 
     def __init_path(self, email: str):
-        os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
+        # os.makedirs(f"./.cache/docs/embeddings/{email}", exist_ok=True)
         os.makedirs(f"{self._tmp_usage_dir}/{email}/docs", exist_ok=True)
+
+    def format_docs(self, docs):
+        return "\n\n".join(doc.page_content for doc in docs)
 
     def get_supabase_output_file_path(self, email: str, filename: str):
         return f"{self._base_output_dir}/{email}/docs/{filename}"
@@ -118,7 +122,6 @@ class AIDocsAgentService(object):
         ip: str,
         jwt: str,
     ):
-        self._retriever = None
         file_content = file.file.read()
         filename = file.filename
         dest = f"{self._tmp_usage_dir}/{email}/docs"
@@ -182,23 +185,23 @@ class AIDocsAgentService(object):
             #     namespace=f"{PREFIX}-{pFilename}-{email}",
             # )
 
-            cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
+            # cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
             loader = UnstructuredFileLoader(tmp_usage_path)
             docs = loader.load_and_split(text_splitter=splitter)
-            cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
-                embeddings, cache_dir
-            )
+            # cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
+            #     embeddings, cache_dir
+            # )
 
             vectorstore = SupabaseVectorStore.from_documents(
                 docs,
-                cached_embeddings,
+                embeddings,
                 client=self._supabaseService.supabase,
                 table_name="Documents",
                 query_name="match_documents",
                 chunk_size=500,
             )
-            self._retriever = vectorstore.as_retriever()
-            return self._retriever
+            retriever = vectorstore.as_retriever()
+            return retriever
         except Exception as e:
             print(e)
             tmp_usage_path = f"{self._tmp_usage_dir}/{email}/docs/{pFilename}"
@@ -254,8 +257,20 @@ class AIDocsAgentService(object):
         print("---RETRIEVE---")
         state_dict = state["keys"]
         question = state_dict["question"]
-        documents = self._retriever.get_relevant_documents(question)
-        return {"keys": {"documents": documents, "question": question}}
+        email = state_dict["email"]
+        filename = state_dict["filename"]
+        ip = state_dict["ip"]
+        retriever = self.get_retriever(email=email, filename=filename, ip=ip)
+        documents = retriever.get_relevant_documents(question)
+        return {
+            "keys": {
+                "documents": documents,
+                "question": question,
+                "email": email,
+                "filename": filename,
+                "ip": ip,
+            }
+        }
 
     def generate(self, state):
         """
@@ -271,6 +286,9 @@ class AIDocsAgentService(object):
         state_dict = state["keys"]
         question = state_dict["question"]
         documents = state_dict["documents"]
+        email = state_dict["email"]
+        filename = state_dict["filename"]
+        ip = state_dict["ip"]
 
         # Prompt
         # prompt = hub.pull("rlm/rag-prompt")
@@ -280,8 +298,6 @@ class AIDocsAgentService(object):
                     "system",
                     """
                     You're a master of document summarization.
-                    IMPORTANT: Answer the question ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
-                    IMPORTANT: Do not refer to documents other than those to answer.
                     If a user makes a request like "Summarize the whole thing" or something, use all the documents,
                     and if he makes a request like "Summarize page 4," use only the documents corresponding to page 4.
                     Context: {context}
@@ -294,7 +310,7 @@ class AIDocsAgentService(object):
         )
 
         # LLM
-        llm = ChatOpenAI(model_name="gpt-4-0125-preview", temperature=0)
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
         # Post-processing
         def format_docs(self, docs):
@@ -310,6 +326,9 @@ class AIDocsAgentService(object):
                 "documents": documents,
                 "question": question,
                 "generation": generation,
+                "email": email,
+                "filename": filename,
+                "ip": ip,
             }
         }
 
@@ -328,6 +347,9 @@ class AIDocsAgentService(object):
         state_dict = state["keys"]
         question = state_dict["question"]
         documents = state_dict["documents"]
+        email = state_dict["email"]
+        filename = state_dict["filename"]
+        ip = state_dict["ip"]
 
         # Data model
         class grade(BaseModel):
@@ -336,7 +358,7 @@ class AIDocsAgentService(object):
             binary_score: str = Field(description="Relevance score 'yes' or 'no'")
 
         # LLM gpt-3.5-turbo-1106
-        model = ChatOpenAI(temperature=0, model="gpt-4-0125-preview", streaming=True)
+        model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", streaming=True)
 
         # Tool
         grade_tool_oai = convert_to_openai_tool(grade)
@@ -375,7 +397,15 @@ class AIDocsAgentService(object):
                 print("---GRADE: DOCUMENT NOT RELEVANT---")
                 continue
 
-        return {"keys": {"documents": filtered_docs, "question": question}}
+        return {
+            "keys": {
+                "documents": filtered_docs,
+                "question": question,
+                "email": email,
+                "filename": filename,
+                "ip": ip,
+            }
+        }
 
     def transform_query(self, state):
         """
@@ -392,6 +422,9 @@ class AIDocsAgentService(object):
         state_dict = state["keys"]
         question = state_dict["question"]
         documents = state_dict["documents"]
+        email = state_dict["email"]
+        filename = state_dict["filename"]
+        ip = state_dict["ip"]
 
         # Create a prompt template with format instructions and the query
         prompt = PromptTemplate(
@@ -406,13 +439,21 @@ class AIDocsAgentService(object):
         )
 
         # Grader
-        model = ChatOpenAI(temperature=0, model="gpt-4-0125-preview", streaming=True)
+        model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", streaming=True)
 
         # Prompt
         chain = prompt | model | StrOutputParser()
         better_question = chain.invoke({"question": question})
 
-        return {"keys": {"documents": documents, "question": better_question}}
+        return {
+            "keys": {
+                "documents": documents,
+                "question": better_question,
+                "email": email,
+                "filename": filename,
+                "ip": ip,
+            }
+        }
 
     def prepare_for_final_grade(self, state):
         """
@@ -430,12 +471,18 @@ class AIDocsAgentService(object):
         question = state_dict["question"]
         documents = state_dict["documents"]
         generation = state_dict["generation"]
+        email = state_dict["email"]
+        filename = state_dict["filename"]
+        ip = state_dict["ip"]
 
         return {
             "keys": {
                 "documents": documents,
                 "question": question,
                 "generation": generation,
+                "email": email,
+                "filename": filename,
+                "ip": ip,
             }
         }
 
@@ -491,7 +538,7 @@ class AIDocsAgentService(object):
             binary_score: str = Field(description="Supported score 'yes' or 'no'")
 
         # LLM
-        model = ChatOpenAI(temperature=0, model="gpt-4-0125-preview", streaming=True)
+        model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", streaming=True)
 
         # Tool
         grade_tool_oai = convert_to_openai_tool(grade)
@@ -556,7 +603,7 @@ class AIDocsAgentService(object):
         # LLM
         model = ChatOpenAI(
             temperature=0,
-            model="gpt-4-0125-preview",
+            model="gpt-3.5-turbo",
             streaming=True,
             # callbacks=[self._callback],
         )
@@ -600,7 +647,6 @@ class AIDocsAgentService(object):
 
     async def invoke_chain(self, email: str, filename: str, message: str, ip: str):
         self.__init_path(email=email)
-        self.get_retriever(email=email, filename=filename, ip=ip)
         workflow = StateGraph(self.GraphState)
 
         # Define the nodes
@@ -642,7 +688,14 @@ class AIDocsAgentService(object):
         )
         # Compile
         app = workflow.compile()
-        inputs = {"keys": {"question": message}}
+        inputs = {
+            "keys": {
+                "question": message,
+                "email": email,
+                "filename": filename,
+                "ip": ip,
+            }
+        }
         try:
             # task = asyncio.create_task(app.ainvoke(inputs, {"recursion_limit": 10}))
             # try:
@@ -654,7 +707,54 @@ class AIDocsAgentService(object):
             # finally:
             #     self._callback.done.set()
             # await task
-            final_response = await app.ainvoke(inputs, {"recursion_limit": 30})
+            final_response = await app.ainvoke(inputs, {"recursion_limit": 25})
             return final_response["keys"]["generation"]
         except:
-            return "해당 문서에서 질문에 대한 답을 찾을 수 없습니다."
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        """
+                        You are an expert in creating detailed, accurate, and concise summaries. Your task is to generate a summary of a given text while simultaneously evaluating your own summary for accuracy, completeness, and coherence. The self-evaluation process involves identifying any errors or areas for improvement in your initial summary and providing a refined version if necessary. This process is particularly useful for automating dataset generation, AI feedback, and prompt evaluation.
+                        Answer the question ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+                        Context: {context}
+
+                        Create an summary according to the following method.
+
+                        - Read the provided text carefully.
+                        - Identify the main points and key details.
+                        - Generate a concise and coherent summary that captures the essence of the text.
+
+                        - Review your summary critically.
+                        - Check for any factual inaccuracies, missing key points, or areas that lack clarity.
+                        - Highlight specific parts of the summary that need improvement.
+
+                        - Revise the summary based on your self-evaluation.
+                        - Ensure the final summary is accurate, complete, and coherent.
+
+                        IMPORTATNT: If the user doesn't ask you to answer in any language, please generate answer in the language you asked.
+                        """,
+                    ),
+                    ("human", "{question}"),
+                ]
+            )
+
+            # LLM
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+            parser = StrOutputParser()
+            retriever = self.get_retriever(email=email, filename=filename, ip=ip)
+
+            chain = (
+                {
+                    "context": retriever | RunnableLambda(self.format_docs),
+                    "question": RunnablePassthrough(),
+                }
+                | prompt
+                | llm
+                | parser
+            )
+            try:
+                result = await chain.ainvoke(input=message)
+                return result
+            except Exception as e:
+                return "해당 문서에서 질문에 대한 답을 찾을 수 없습니다."
