@@ -36,6 +36,14 @@ class FileService(object):
         )
 
     def get_file_mime_type(self, file_path: str) -> str:
+        ext = self.get_file_extension(file_path)
+        if ext == "docx":
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif ext == "rtf":
+            return "application/octet-stream"
+        elif ext == "txt":
+            return "text/plain"
+
         return mimetypes.guess_type(file_path)[0]
 
     def delete_file(self, file_path: str, missing_ok: bool = False) -> bool:
