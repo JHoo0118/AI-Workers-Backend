@@ -144,6 +144,9 @@ class AIDocsService(object):
 
     def get_tmp_output_file_path(self, filename: str):
         return f"{self._tmp_dir}/{filename}"
+    
+    def clean_text(self, text):
+        return text.replace('\u0000', '')
 
     def embed_file(
         self,
@@ -170,7 +173,8 @@ class AIDocsService(object):
             )
 
             with open(tmp_output_file_path, "wb") as f:
-                f.write(file_content)
+                cleaned_content = file_content.replace(b'\x00', b'')
+                f.write(cleaned_content)
 
             shutil.copyfile(f"{tmp_output_file_path}", tmp_usage_file_path)
             SupabaseService().file_upload_on_supabase_private(
@@ -225,6 +229,7 @@ class AIDocsService(object):
             # )
 
             cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
+            
             loader = UnstructuredFileLoader(tmp_usage_path)
             docs = loader.load_and_split(text_splitter=splitter)
             # cached_embeddings = CacheBackedEmbeddings.from_bytes_store(

@@ -142,7 +142,8 @@ class AIDocsAgentService(object):
             )
 
             with open(tmp_output_file_path, "wb") as f:
-                f.write(file_content)
+                cleaned_content = file_content.replace(b'\x00', b'')
+                f.write(cleaned_content)
 
             shutil.copyfile(f"{tmp_output_file_path}", tmp_usage_file_path)
             SupabaseService().file_upload_on_supabase_private(
