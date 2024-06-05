@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import re
 
 from dotenv import load_dotenv
 from operator import itemgetter
@@ -146,7 +147,7 @@ class AIDocsService(object):
         return f"{self._tmp_dir}/{filename}"
     
     def clean_text(self, text):
-        return text.replace('\u0000', '')
+        return re.sub('\u0000', '', text)
 
     def embed_file(
         self,

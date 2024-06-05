@@ -3,6 +3,7 @@ import time
 import uuid
 import aiofiles
 import pathlib
+import re
 
 from typing import List
 from fastapi import UploadFile
@@ -32,7 +33,7 @@ async def get_pdf_to_word_result(files: List[UploadFile]) -> List[str]:
 
             async with aiofiles.open(input_file_tmp_path, "wb") as out_file:
                 content = await file.read()
-                cleaned_content = content.replace(b'\x00', b'')
+                cleaned_content = re.sub(b'\x00', b'', content)
                 await out_file.write(cleaned_content)
 
             output_filename_except_dir = f"converted-{u4}-{curr_ms}.docx"

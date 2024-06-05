@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import re
 
 from pyparsing import Any
 from typing import Dict, List, TypedDict
@@ -116,7 +117,7 @@ class AIDocsAgentService(object):
         return f"{self._tmp_dir}/{filename}"
 
     def clean_text(self, text):
-        return text.replace('\u0000', '')
+        return re.sub('\u0000', '', text)
 
     def embed_file(
         self,

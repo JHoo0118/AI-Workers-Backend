@@ -1,5 +1,6 @@
 import os
 import shutil
+import re
 from collections import defaultdict
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from dotenv import load_dotenv
@@ -64,7 +65,7 @@ class AIDocsServeVer2Service(object):
         return f"{self._tmp_dir}/{filename}"
 
     def clean_text(self, text):
-        return text.replace('\u0000', '')
+        return re.sub('\u0000', '', text)
 
     def download_file_from_supabase(
         self,
