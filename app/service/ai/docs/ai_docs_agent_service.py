@@ -115,6 +115,9 @@ class AIDocsAgentService(object):
     def get_tmp_output_file_path(self, filename: str):
         return f"{self._tmp_dir}/{filename}"
 
+    def clean_text(self, text):
+        return text.replace('\u0000', '')
+
     def embed_file(
         self,
         email: str,
@@ -191,6 +194,9 @@ class AIDocsAgentService(object):
             # cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
             #     embeddings, cache_dir
             # )
+
+            for doc in docs:
+                doc['text'] = self.clean_text(doc['text'])
 
             vectorstore = SupabaseVectorStore.from_documents(
                 docs,

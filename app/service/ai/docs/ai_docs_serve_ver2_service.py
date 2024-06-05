@@ -63,6 +63,9 @@ class AIDocsServeVer2Service(object):
     def get_tmp_output_file_path(self, filename: str):
         return f"{self._tmp_dir}/{filename}"
 
+    def clean_text(self, text):
+        return text.replace('\u0000', '')
+
     def download_file_from_supabase(
         self,
         email: str,
@@ -151,6 +154,9 @@ class AIDocsServeVer2Service(object):
             page_number = view.metadata.get("page")
             texts = splitter.split_text(view.page_content)
             docs = [Document(page_content=t) for t in texts]
+            for doc in docs:
+                doc['text'] = self.clean_text(doc['text'])
+
             chain = load_summarize_chain(
                 llm,
                 chain_type="refine",
