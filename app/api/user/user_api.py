@@ -42,7 +42,7 @@ async def read_users_me(
     return current_user
 
 
-@router.post("remain", response_model=UserModel)
+@router.post("/remain", response_model=UserModel)
 async def recalculate_remain_count(
     email: Annotated[UserModel, Depends(JwtBearer(only_email=True))]
 ):
