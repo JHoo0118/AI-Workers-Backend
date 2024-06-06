@@ -58,7 +58,7 @@ class AIAlgorithmAdvisorService(object):
             template="""For algorithm problems or specific situations, here's a structured approach to advising on algorithms and solving examples:
         Use the following language to solve the problem: {lang}
         user input is: {user_input}
-
+        answer language: Korean
 
         IMPORTANT: If it is related to the previous question of the user's question, refer to the previous question and answer. If not, follow the following instructions.
 
@@ -115,7 +115,7 @@ class AIAlgorithmAdvisorService(object):
         # LLM
         llm = ChatOpenAI(
             # model_name="gpt-4-0125-preview",
-            model="gpt-4-0125-preview",
+            model="gpt-3.5-turbo",
             temperature=0,
             max_tokens=1000,
         )  # 4000자

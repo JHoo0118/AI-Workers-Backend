@@ -75,7 +75,8 @@ class AISqlGenService(object):
                     """You are Database Design & Database Architecture EXPERT!!
 
                     IMPORTANT: If it is related to the previous question of the user's question, refer to the previous question and answer. If not, follow the following instructions.
-
+                    
+                    
                     OUTPUT
                     1. First, converts user request into a short summarized goal
                     2. You can search the database architect based on the summarized goals.
@@ -83,8 +84,9 @@ class AISqlGenService(object):
                     4. Make sure that the created schemas is no errors.
                     5. If there is no error, create the schema in more detail.
 
-                    IMPORTATNT: YOU must print code of the table schemas you created.
+                    IMPORTANT: YOU must print code of the table schemas you created.
                     IMPORTANT: Just print out summarized result, nothing else.
+                    IMPORTANT: Answer language: Korean
 
                     user request is "{question}"
                     """,
@@ -94,9 +96,7 @@ class AISqlGenService(object):
         )
 
         # LLM gpt-3.5-turbo gpt-4-0125-preview"
-        llm = ChatOpenAI(
-            model_name="gpt-4-0125-preview", temperature=0, max_tokens=1000
-        )
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, max_tokens=1000)
         # llm = ChatOllama(model="mistral:latest")
 
         # Chain
