@@ -1,6 +1,8 @@
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
+from fastapi import HTTPException
 from app.db.prisma import prisma
+from fastapi import HTTPException, status
 from app.model.user.user_model import CreateUserInputs, UpdateUserInputs, UserModel
 
 
@@ -49,3 +51,24 @@ class UserService(object):
             },
             include={"refreshToken": {"include": {"user": False}}},
         )
+
+    async def recalculate_remain_count(self, email: str) -> UserModel:
+        user = await self.get_user(email)
+        if user.remainCount <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="잔여 횟수가 없습니다.",
+            )
+
+        target_remain_count = user.remainCount - 1
+
+        user = prisma.user.update(
+            data={
+                "remainCount": target_remain_count,
+            },
+            where={
+                "email": email,
+            },
+        )
+
+        return user

@@ -222,6 +222,9 @@ class SupabaseAuthService(object):
                 data = sign_up_inputs.model_dump()
                 data.pop("password")
                 transaction.user.create(data)
+                transaction.user.update(
+                    where={"email": email}, data={"remainCount": 10}
+                )
 
             res = self._supabaseService.supabase.auth.sign_up(
                 {

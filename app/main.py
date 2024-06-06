@@ -10,6 +10,7 @@ from app.middleware import RouterLoggingMiddleware
 
 from app.db.supabase import SupabaseService
 
+from app.middleware.ai_middleware import AIMiddleware
 from app.service.scheduler.scheduler_service import SchedulerService
 
 
@@ -45,6 +46,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AIMiddleware)
 
 
 @app.get("/")

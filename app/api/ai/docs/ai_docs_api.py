@@ -116,7 +116,7 @@ async def docs_summary_serve(
     return DocsSummaryServeEmbedOutputs(path=result)
 
 
-@router.post("/summary/serve")
+@router.post("/ask/serve")
 async def docs_summary_serve(
     request: Request,
     email: Annotated[UserModel, Depends(JwtBearer(only_email=True))],

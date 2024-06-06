@@ -40,3 +40,10 @@ async def read_users_me(
     current_user: Annotated[UserModel, Depends(JwtBearer(only_email=False))]
 ):
     return current_user
+
+
+@router.post("remain", response_model=UserModel)
+async def recalculate_remain_count(
+    email: Annotated[UserModel, Depends(JwtBearer(only_email=True))]
+):
+    return await UserService().recalculate_remain_count(email=email)

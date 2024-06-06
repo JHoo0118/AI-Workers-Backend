@@ -11,6 +11,7 @@ CREATE TABLE "User" (
     "password" TEXT,
     "type" "SignupType" NOT NULL DEFAULT 'EMAIL',
     "disabled" BOOLEAN NOT NULL DEFAULT false,
+    "remainCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -29,11 +30,13 @@ CREATE TABLE "RefreshToken" (
 CREATE TABLE "File" (
     "id" SERIAL NOT NULL,
     "userEmail" TEXT,
-    "fileName" TEXT NOT NULL,
     "filePath" TEXT NOT NULL,
+    "tmpFilePath" TEXT,
     "fileSize" TEXT NOT NULL,
     "uploadDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "contentType" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "originFilename" TEXT NOT NULL,
 
     CONSTRAINT "File_pkey" PRIMARY KEY ("id")
 );
@@ -55,6 +58,7 @@ CREATE TABLE "Documents" (
     "content" TEXT NOT NULL,
     "metadata" JSONB NOT NULL,
     "embedding" vector(1536),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Documents_pkey" PRIMARY KEY ("id")
 );
