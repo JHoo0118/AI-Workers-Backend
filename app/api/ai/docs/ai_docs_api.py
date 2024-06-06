@@ -5,7 +5,6 @@ from fastapi.responses import StreamingResponse
 from app.model.user.user_model import UserModel
 from app.service.ai.docs.ai_docs_serve_ver2_service import AIDocsServeVer2Service
 from app.service.ai.docs.ai_docs_service import AIDocsService
-from app.service.ai.docs.ai_docs_serve_service import AIDocsServeService
 from app.service.auth.jwt_bearer import JwtBearer
 from app.service.ai.docs.ai_docs_agent_service import AIDocsAgentService
 from app.model.ai.docs.ai_docs_model import (

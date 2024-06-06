@@ -35,6 +35,7 @@ from langchain_core.messages.base import BaseMessage
 from app.service.file.file_service import FileService
 from app.db.prisma import prisma
 from app.const import *
+from langchain.docstore.document import Document
 
 
 from app.db.supabase import SupabaseService
@@ -116,9 +117,6 @@ class AIDocsAgentService(object):
     def get_tmp_output_file_path(self, filename: str):
         return f"{self._tmp_dir}/{filename}"
 
-    def clean_text(self, text):
-        return re.sub('\u0000', '', text)
-
     def embed_file(
         self,
         email: str,
@@ -143,8 +141,7 @@ class AIDocsAgentService(object):
             )
 
             with open(tmp_output_file_path, "wb") as f:
-                cleaned_content = file_content.replace(b'\x00', b'')
-                f.write(cleaned_content)
+                f.write(file_content)
 
             shutil.copyfile(f"{tmp_output_file_path}", tmp_usage_file_path)
             SupabaseService().file_upload_on_supabase_private(
@@ -192,13 +189,9 @@ class AIDocsAgentService(object):
 
             # cache_dir = LocalFileStore(f"./.cache/docs/embeddings/{email}/{pFilename}")
             loader = UnstructuredFileLoader(tmp_usage_path)
-            docs = loader.load_and_split(text_splitter=splitter)
-            # cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
-            #     embeddings, cache_dir
-            # )
-
-            for doc in docs:
-                doc['text'] = self.clean_text(doc['text'])
+            docs: list[Document] = loader.load_and_split(text_splitter=splitter)
+            for d in docs:
+                d.page_content = re.sub("\u0000", "", d.page_content)
 
             vectorstore = SupabaseVectorStore.from_documents(
                 docs,

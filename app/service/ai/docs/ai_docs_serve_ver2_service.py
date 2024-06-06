@@ -64,9 +64,6 @@ class AIDocsServeVer2Service(object):
     def get_tmp_output_file_path(self, filename: str):
         return f"{self._tmp_dir}/{filename}"
 
-    def clean_text(self, text):
-        return re.sub('\u0000', '', text)
-
     def download_file_from_supabase(
         self,
         email: str,
@@ -135,12 +132,13 @@ class AIDocsServeVer2Service(object):
     async def summarize_text_by_page_for_stream(self, email: str, path: str, ip: str):
         pdf_document = self.extract_text_from_pdf(email=email, filename=path, ip=ip)
 
-        refine_template = """You are the expert who wrote the article. Your job is to produce a final summary by using Korean\n
-            We have provided an existing summary up to a certain point: {existing_answer}\n
-            We have the opportunity to refine the existing summary
-            You should summary concisely but in detail, do not except key points that you think 
-            At the end of the summary, we briefly list what we think is important in the form of a list.
-            (only if needed) with some more context below.\n
+        refine_template = """당신은 세계에서 제일가는 요약 전문가입니다. 당신의 일은 최종 요약본을 생성하는 것입니다.\n
+            요약은 다음 언어로 작성해 주세요: 한국어
+            기존 요약본은 다음과 같습니다: {existing_answer}\n
+            우리는 요약을 개선할 수 있는 기회가 있습니다.
+            중요하다고 생각하는 요점은 반드시 포함시켜야 하며, 어려운 수식은 전체 풀이과정을 알기 쉽게 설명하여 풀이합니다.
+            마지막 부분에는 중요하다고 생각하는 것들을 목록 형태로 간단히 나열합니다.
+            (필요한 경우에만) 아래에 몇 가지 컨텍스트가 더 있습니다.\n
             ------------\n
             {text}\n
             ------------\n
@@ -154,9 +152,8 @@ class AIDocsServeVer2Service(object):
             view = pdf_document[page_index - 1]
             page_number = view.metadata.get("page")
             texts = splitter.split_text(view.page_content)
-            docs = [Document(page_content=t) for t in texts]
-            for doc in docs:
-                doc['text'] = self.clean_text(doc['text'])
+            # docs = [Document(page_content=t) for t in texts]
+            docs = [Document(page_content=re.sub("\u0000", "", t)) for t in texts]
 
             chain = load_summarize_chain(
                 llm,
@@ -206,8 +203,7 @@ class AIDocsServeVer2Service(object):
             )
 
             with open(tmp_output_file_path, "wb") as f:
-                cleaned_content = file_content.replace(b'\x00', b'')
-                f.write(cleaned_content)
+                f.write(file_content)
 
             shutil.copyfile(f"{tmp_output_file_path}", tmp_usage_file_path)
             SupabaseService().file_upload_on_supabase_private(
@@ -290,7 +286,7 @@ class AIDocsServeVer2Service(object):
             view = pdf_document[page_number - 1]
             page_texts = splitter.split_text(view.page_content)
             texts.extend(page_texts)
-        docs = [Document(page_content=t) for t in texts]
+        docs = [Document(page_content=re.sub("\u0000", "", t)) for t in texts]
         chain = load_summarize_chain(
             llm,
             chain_type="refine",
